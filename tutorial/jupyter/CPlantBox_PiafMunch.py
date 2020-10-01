@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 from scipy import stats
 import copy
+from itertools import cycle
 ############################## system libraries imported ###################################
 
 ############################## Load precompiled CPlantBox ###################################
@@ -67,8 +68,157 @@ def change_parameter(input_name, output_name, organ_name, subtype , parameter_na
 	plant_parameter.find("./organ[@type='{}'][@subType='{}']/parameter[@name='{}']".format(organ_name, subtype, parameter_name)).set('{}'.format(value_type),'{}'.format(value)) # set function to read the value
 	current_lmax = plant_parameter.find("./organ[@type='{}'][@subType='{}']/parameter[@name='{}']".format(organ_name, subtype, parameter_name)).get('{}'.format(value_type)) # get function to read the value
 	print('original {} of {} organ with subtype {} is {}, changed to {}'.format(parameter_name, organ_name, subtype ,original_lmax, current_lmax))
-	all_parameter.write('../../modelparameter/plant/{}.xml'.format(output_name))   
+	all_parameter.write('../../modelparameter/plant/{}.xml'.format(output_name)) 
+	
+def visual_plant_l(p, label = 'org_types'):
+    plant_lists=[]
+    plant_lists = [[None]*7 for _ in range(len(p.getNodes()))]
 
+    for i, nodes in enumerate(p.getNodes()):
+    #     print(i)
+        plant_lists[i][0] = nodes.x
+        plant_lists[i][1] = nodes.y
+        plant_lists[i][2] = nodes.z
+    #     print(plant_lists[i])
+
+
+    for i, organ in enumerate(p.getOrgans()):
+        for j in range(organ.getNumberOfNodes()):
+            node_id = organ.getNodeId(j)
+            plant_lists[node_id][3] = organ.getParameter('organType')
+            plant_lists[node_id][4] = organ.getParameter('subType')
+            plant_lists[node_id][5] = organ.getId()
+            plant_lists[node_id][6] = organ.getParameter('a')
+
+
+    features = []
+    organs = []
+    orders = []
+    sub_types = []
+    rads = []   
+    org_types = []
+
+    legend_label = {
+   ' features' : features,
+    'organs' : organs,
+    'orders' : orders,
+    'sub_types' : sub_types,
+    'rads' : rads  ,
+    'org_types' : org_types,
+
+        
+    }
+
+    for j in range(len(p.getOrgans())):
+        df = np.array(plant_lists)
+        i = p.getOrgans()[j].getId()
+        corx=df[np.where(df[:,5] == i)][:,0].tolist()
+        cory=df[np.where(df[:,5] == i)][:,1].tolist()
+        corz=df[np.where(df[:,5] == i)][:,2].tolist()
+        rad=df[np.where(df[:,5] == i)][:,6].tolist()
+        organ_id=df[np.where(df[:,5] == i)][:,5].tolist()
+        org_type =df[np.where(df[:,5] == i)][:,3].tolist()
+        sub_type=df[np.where(df[:,5] == i)][:,4].tolist()
+        features.append([corx, cory, corz])
+    #         rads.append(df[df["time"] ==t ][df["connection_1"] ==node_id[0]]['r_st'].iloc[0])
+        rads.append(rad[0])
+        organs.append(organ_id)
+        org_types.append(org_type) 
+        sub_types.append(sub_type)        
+
+    def plotly_color_map(names):
+
+        plotly_colors = cycle([
+            'orange',
+            'darkgreen',
+            'lightgreen',
+            '#1f77b4',  # muted blue
+                               '#ff7f0e',  # safety orange
+                               '#2ca02c',  # cooked asparagus green
+                               '#d62728',  # brick red
+                               '#9467bd',  # muted purple
+        '#8c564b',  # chestnut brown
+        '#e377c2',  # raspberry yogurt pink
+        '#7f7f7f',  # middle gray
+        '#bcbd22',  # curry yellow-green
+        '#17becf'   # blue-teal
+                               ])
+
+        return dict(zip(names, plotly_colors))    
+
+    fig =  make_subplots(rows=1, cols=1,
+                        specs=[[{'is_3d': True}]],
+                        print_grid=False, subplot_titles=(["plant linefigure"]) )
+
+    legend_groups = [l[-1] for l in legend_label[label]]
+
+    traces = [False if (len(legend_groups[:i])>0 and l in legend_groups[:i]) 
+              else True for i, l in enumerate(legend_groups)]
+
+    cm = plotly_color_map(set(legend_groups))
+
+    camera = dict(eye=dict(x=0, y=2, z=0.1))
+
+
+    for i, feat in enumerate(features):
+        feat = np.array(feat)
+        fig.add_trace(
+            go.Scatter3d(
+                x=feat[0,:],
+                y=feat[1,:],
+                z=feat[2,:],
+    #             mode='lines+markers',
+                mode='lines',
+                line={"color":cm[legend_groups[i]], "width" : rads[i]*25},
+    #             marker=dict(
+    #             color=cm[legend_groups[i]],
+    #             size=0,
+    #             line=dict(
+    #                 color='MediumPurple',
+    #                 width=0
+    #             )
+    #         ),
+                legendgroup=legend_groups[i],
+                hovertext='id {}'.format(i),
+                showlegend=traces[i],
+                name="sub_type{}".format(legend_groups[i]),
+            ),
+            row=1, col=1
+        )
+
+    scence = dict(
+                    xaxis = dict(
+                         backgroundcolor="rgb(250, 250, 250,1)",
+                         gridcolor="grey",
+                         showbackground=True,
+                         zerolinecolor="black",),
+                    yaxis = dict(
+                        backgroundcolor="rgb(250, 250,250)",
+                        gridcolor="lightgrey",
+                        showbackground=True,
+                        zerolinecolor="black"),
+                    zaxis = dict(
+                        backgroundcolor="rgb(250, 250,250)",
+                        gridcolor="lightgrey",
+                        showbackground=True,
+                        zerolinecolor="black",),)
+    fig.update_layout(scene = scence,
+                        width=800,
+                        margin=dict(
+                        r=10, l=10,
+                        b=10, t=10)
+                      )
+
+    fig.update_layout(scene_camera=camera)
+    fig.update_layout(scene_aspectmode='data',autosize=False, scene = dict(
+                        xaxis_title='X AXIS ',
+                        yaxis_title='Y AXIS ',
+                        zaxis_title='Z AXIS '),
+                        width=800,
+                        height = 1000,
+                        margin=dict(r=20, b=20, l=20, t=20), title_text= "")
+    fig.write_html('plant_figure.html')
+    return fig
 def visual_plant(plant1):
 	subfig = visual_plant_sub(plant1)
 	fig = make_subplots(
