@@ -101,6 +101,7 @@
     <parameter name="lmax" value="15" dev="0"/>
     <!--Inter-lateral distance [cm];-->
     <parameter name="nob" value="0" dev="0"/>
+		    <parameter name="lnf" value="5"/>
     <parameter name="r" value="10" dev="0"/>
     <parameter name="a" value="0.20000000000000001" dev="0.02"/>
     <parameter name="RotBeta" value="1"/>
@@ -124,6 +125,7 @@
     <!--Inter-lateral distance [cm];-->
     <parameter name="lmax" value="0.5" dev="0"/>
     <!--Inter-lateral distance [cm];-->
+	    <parameter name="lnf" value="5"/>
     <parameter name="nob" value="0" dev="0"/>
     <parameter name="r" value="1.5" dev="0"/>
     <parameter name="a" value="0.5" dev="0.002"/>
