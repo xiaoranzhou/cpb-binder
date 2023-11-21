@@ -30,7 +30,6 @@ import plotly.graph_objects as go
 import xml.etree.ElementTree as ET
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import proj3d
 from scipy import stats
 import copy
 from itertools import cycle
